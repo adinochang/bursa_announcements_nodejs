@@ -15,7 +15,7 @@ class HttpRequest {
 
       const response = await axios.get(url);
 
-      if (Object.hasOwn(response, 'data')) {
+      if (await Object.hasOwn(response, 'data')) {
         data = response.data;
       }
     }
