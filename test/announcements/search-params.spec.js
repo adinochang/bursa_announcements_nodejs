@@ -33,7 +33,7 @@ describe('SearchParams', () => {
       dateStub.restore();
     });
 
-    it('should create the default constructor if no params used', async () => {
+    it('should create default params if no arguments given', async () => {
       const searchParams = new SearchParams();
 
       searchParams.should.be.eql(defaultParams);
