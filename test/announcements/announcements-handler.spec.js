@@ -9,7 +9,7 @@ const testEndPoint = '/api/v1';
 const testParams = {
   dateFrom: '2023-04-19',
   dateTo: '2023-04-20',
-  pageNumber: 21,
+  pageNumber: 1,
 };
 const testConfig = {
   apiSource: testSource,
@@ -205,7 +205,7 @@ describe('AnnouncementsHandler', () => {
       });
 
       should.exist(handler.searchParams);
-      handler.searchParams.page.should.be.eql(21);
+      handler.searchParams.page.should.be.eql(1);
       handler.searchParams.should.be.instanceof(SearchParams);
     });
 
@@ -250,10 +250,58 @@ describe('AnnouncementsHandler', () => {
       handler.httpService.should.be.instanceof(HttpRequest);
       handler.apiEndPoint.should.be.eql(testEndPoint);
       should.exist(handler.searchParams);
-      handler.searchParams.page.should.be.eql(21);
+      handler.searchParams.page.should.be.eql(1);
       handler.searchParams.should.be.instanceof(SearchParams);
 
       handler.configValid.should.be.eql(true);
+    });
+  });
+
+  describe('calculatePageCount', () => {
+    const handler = new AnnouncementsHandler(testConfig);
+
+    it('should not change page count if arguments are missing or invalid', async () => {
+      await handler.calculatePageCount();
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(null, 5);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount('abc', 5);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(0, 5);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(12, null);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(12, 'abc');
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(12, 0);
+
+      handler.pageCount.should.be.eql(1);
+    });
+
+    it('should calculate page count correctly', async () => {
+      await handler.calculatePageCount(3, 5);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(5, 5);
+
+      handler.pageCount.should.be.eql(1);
+
+      await handler.calculatePageCount(12, 5);
+
+      handler.pageCount.should.be.eql(3);
     });
   });
 
@@ -265,9 +313,7 @@ describe('AnnouncementsHandler', () => {
     beforeEach(() => {
       httpStub = sinon.stub(handler.httpService, 'sendGetRequest');
 
-      httpStub.onFirstCall().resolves(testResultsPage1);
-      httpStub.onSecondCall().resolves(testResultsPage2);
-      httpStub.onThirdCall().resolves(testResultsPage3);
+      httpStub.resolves(testResultsPage1);
     });
 
     afterEach(() => {
@@ -287,12 +333,15 @@ describe('AnnouncementsHandler', () => {
       result.should.be.eql(testResultsPage1);
     });
 
-    it('should store totalRecords from the first page', async () => {
+    it('should store totalRecords and pageCount from the first page', async () => {
       await handler.getFirstPage();
 
-      const { totalRecords } = handler;
+      const { totalRecords, pageCount } = handler;
+      const expectedPageCount = Math
+        .ceil(testResultsPage1.recordsTotal / testResultsPage1.data.length);
 
       totalRecords.should.be.eql(testResultsPage1.recordsTotal);
+      pageCount.should.be.eql(expectedPageCount);
     });
 
     it('should return an empty object if results are not returned from the API', async () => {
@@ -315,6 +364,108 @@ describe('AnnouncementsHandler', () => {
       totalRecords.should.be.eql(0);
 
       failedHttpStub.restore();
+    });
+  });
+
+  describe('getPageData', () => {
+    const handler = new AnnouncementsHandler(testConfig);
+    const failedHandler = new AnnouncementsHandler(testConfig);
+    let httpStub;
+
+    beforeEach(() => {
+      httpStub = sinon.stub(handler.httpService, 'sendGetRequest').callsFake(() => {
+        let result = testResultsPage1;
+
+        if (handler.searchParams.page === 2) {
+          result = testResultsPage2;
+        } else if (handler.searchParams.page === 3) {
+          result = testResultsPage3;
+        }
+
+        return result;
+      });
+    });
+
+    afterEach(() => {
+      httpStub.restore();
+
+      handler.searchParams.setPage(1);
+    });
+
+    it('should not execute if config is invalid', async () => {
+      const invalidHandler = new AnnouncementsHandler();
+      const result = await invalidHandler.getPageData();
+
+      result.should.be.eql([]);
+    });
+
+    it('should call getFirstPage if config is on page 1', async () => {
+      const getFirstPageStub = sinon.stub(handler, 'getFirstPage');
+      getFirstPageStub.resolves(testResultsPage1);
+
+      const result = await handler.getPageData();
+      result.should.be.eql(testResultsPage1);
+
+      getFirstPageStub.restore();
+    });
+
+    it('should return subsequent pages after incrementPage', async () => {
+      handler.searchParams.incrementPage();
+      const result1 = await handler.getPageData();
+
+      result1.should.be.eql(testResultsPage2);
+
+      handler.searchParams.incrementPage();
+      const result2 = await handler.getPageData();
+
+      result2.should.be.eql(testResultsPage3);
+    });
+
+    it('should return exact page after setPage', async () => {
+      handler.searchParams.setPage(3);
+      const result = await handler.getPageData();
+
+      result.should.be.eql(testResultsPage3);
+    });
+
+    it('should return an empty object if results are not returned from the API', async () => {
+      const failedHttpStub = sinon.stub(failedHandler.httpService, 'sendGetRequest').resolves({});
+
+      const result = await failedHandler.getPageData();
+
+      result.should.be.eql({});
+
+      failedHttpStub.restore();
+    });
+  });
+
+  describe('getAnnouncements', () => {
+    const handler = new AnnouncementsHandler(testConfig);
+    let httpStub;
+
+    beforeEach(() => {
+      httpStub = sinon.stub(handler.httpService, 'sendGetRequest').callsFake(() => {
+        let result = testResultsPage1;
+
+        if (handler.searchParams.page === 2) {
+          result = testResultsPage2;
+        } else if (handler.searchParams.page === 3) {
+          result = testResultsPage3;
+        }
+
+        return result;
+      });
+    });
+
+    afterEach(() => {
+      httpStub.restore();
+    });
+
+    it('should return data from all pages', async () => {
+      const result = await handler.getAnnouncements();
+
+      result.should.be
+        .eql(testResultsPage1.data.concat(testResultsPage2.data, testResultsPage3.data));
     });
   });
 });
