@@ -41,9 +41,23 @@ class SearchParams {
 
       if (Object.hasOwn(params, 'pageNumber') && typeof params.pageNumber === 'number'
           && params.pageNumber > 0) {
-        this.page = params.pageNumber;
+        this.setPage(params.pageNumber);
       }
     }
+  }
+
+  setPage(pageNumber) {
+    if (typeof pageNumber === 'number' && pageNumber > 0) {
+      this.page = pageNumber;
+    }
+  }
+
+  incrementPage() {
+    this.setPage(this.page + 1);
+  }
+
+  decrementPage() {
+    this.setPage(this.page - 1);
   }
 }
 

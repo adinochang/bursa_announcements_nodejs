@@ -157,4 +157,68 @@ describe('SearchParams', () => {
       searchParams._.should.be.eql(requestDate);
     });
   });
+
+  describe('setPage', () => {
+    it('should not change the page number if pageNumber argument is missing', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage();
+
+      searchParams.page.should.be.eql(1);
+    });
+
+    it('should not change the page number if pageNumber argument is not a number', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage('2');
+
+      searchParams.page.should.be.eql(1);
+    });
+
+    it('should not change the page number if pageNumber argument is less than 1', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage(0);
+
+      searchParams.page.should.be.eql(1);
+    });
+
+    it('should set the correct page number if pageNumber argument is valid', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage(8);
+
+      searchParams.page.should.be.eql(8);
+    });
+  });
+
+  describe('incrementPage', () => {
+    it('should increase page by 1', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage(5);
+      searchParams.incrementPage();
+
+      searchParams.page.should.be.eql(6);
+    });
+  });
+
+  describe('decrementPage', () => {
+    it('should decrease page by 1', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.setPage(5);
+      searchParams.decrementPage();
+
+      searchParams.page.should.be.eql(4);
+    });
+
+    it('should not decrease page lower than 1', () => {
+      const searchParams = new SearchParams();
+
+      searchParams.decrementPage();
+
+      searchParams.page.should.be.eql(1);
+    });
+  });
 });
