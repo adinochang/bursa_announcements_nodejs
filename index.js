@@ -1,28 +1,25 @@
 require('dotenv').config();
-const HttpRequest = require('./src/http/http-request');
+const AnnouncementsHandler = require('./src/announcements/announcements-handler');
+const SearchParams = require('./src/announcements/search-params');
+const DateUtils = require('./src/utils/date-utils');
 
 async function main() {
-  const apiSource = process.env.SOURCE_URL + process.env.SOURCE_API;
   const args = process.argv.slice(2);
 
-  const params = {
-    ann_type: 'company',
-    company: '',
-    keyword: '',
-    dt_ht: args[0],
-    dt_lt: args[0],
-    cat: '',
-    sub_type: '',
-    mkt: '',
-    sec: '',
-    subsec: '',
-    per_page: 50,
-    page: 1,
-    _: Date.now(),
-  };
+  if (args[0] === undefined || args[0].length === 0) {
+    args[0] = DateUtils.toDateString(new Date(), 'yyyy-MM-dd');
+  }
 
-  const http = new HttpRequest(apiSource);
-  const data = await http.sendGetRequest(process.env.SOURCE_END_POINT, params);
+  const announcements = new AnnouncementsHandler({
+    apiSource: process.env.SOURCE_URL + process.env.SOURCE_API,
+    apiEndPoint: process.env.SOURCE_END_POINT,
+    searchParams: new SearchParams({
+      dateFrom: args[0],
+      dateTo: args[0],
+    }),
+  });
+
+  const data = await announcements.getAnnouncements();
 
   // TODO: continue here
   console.log(data);
