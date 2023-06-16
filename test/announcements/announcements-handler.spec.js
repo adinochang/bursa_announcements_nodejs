@@ -38,7 +38,7 @@ const testResultsPage1 = {
     [
       3,
       "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
+      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 1</a>",
       "<a href='/url/announcement_details?ann_id=1003' target=_blank>TITLE 3</a>",
     ],
     [
@@ -510,6 +510,31 @@ describe('AnnouncementsHandler', () => {
       handler.announcements[testIndex].should.be.eql(testAnnouncement);
 
       getDataStub.restore();
+    });
+  });
+
+  describe('displayAnnouncements', () => {
+    it('should display an empty string if no data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+      handler.announcements = [];
+
+      const result = handler.displayAnnouncements();
+      result.should.be.eql('');
+    });
+
+    it('should display announcements array if data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      handler.data = testResultsPage1.data;
+      await handler.getAnnouncements();
+
+      let testDisplay = '';
+      handler.announcements.forEach((row) => {
+        testDisplay += `${row.companyName}\n${row.id}. ${row.announcementTitle}\n${row.announcementUrl}\n\n`;
+      });
+
+      const result = handler.displayAnnouncements();
+      result.should.be.eql(testDisplay);
     });
   });
 });

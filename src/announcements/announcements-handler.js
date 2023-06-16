@@ -96,7 +96,7 @@ class AnnouncementsHandler {
     this.data = data;
   }
 
-  async getAnnouncements() {
+  getAnnouncements() {
     this.announcements = [];
 
     if (this.data.length > 0) {
@@ -110,6 +110,18 @@ class AnnouncementsHandler {
         row += 1;
       }
     }
+  }
+
+  // TODO: Group announcements from the same company
+
+  displayAnnouncements() {
+    let display = '';
+
+    this.announcements.forEach((row) => {
+      display += `${row.companyName}\n${row.id}. ${row.announcementTitle}\n${row.announcementUrl}\n\n`;
+    });
+
+    return display;
   }
 }
 
