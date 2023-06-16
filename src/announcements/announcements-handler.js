@@ -1,5 +1,6 @@
 const HttpRequest = require('../http/http-request');
 const SearchParams = require('./search-params');
+const Announcement = require('./announcement');
 
 class AnnouncementsHandler {
   httpService = null;
@@ -13,6 +14,10 @@ class AnnouncementsHandler {
   totalRecords = 0;
 
   pageCount = 1;
+
+  data = [];
+
+  announcements = [];
 
   constructor(config) {
     if (config !== undefined) {
@@ -69,7 +74,7 @@ class AnnouncementsHandler {
     return data;
   }
 
-  async getAnnouncements() {
+  async getAnnouncementData() {
     let data = [];
     let page = 1;
 
@@ -88,7 +93,23 @@ class AnnouncementsHandler {
       data = data.concat(pageData.data);
     }
 
-    return data;
+    this.data = data;
+  }
+
+  async getAnnouncements() {
+    this.announcements = [];
+
+    if (this.data.length > 0) {
+      let row = 0;
+      while (row < this.data.length) {
+        const announcement = new Announcement();
+
+        announcement.constructFromWebData(this.data[row]);
+        this.announcements.push(announcement);
+
+        row += 1;
+      }
+    }
   }
 }
 
