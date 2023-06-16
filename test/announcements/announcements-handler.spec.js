@@ -1,6 +1,7 @@
 const should = require('chai').should();
 const sinon = require('sinon');
 const AnnouncementsHandler = require('../../src/announcements/announcements-handler');
+const Announcement = require('../../src/announcements/announcement');
 const HttpRequest = require('../../src/http/http-request');
 const SearchParams = require('../../src/announcements/search-params');
 
@@ -37,7 +38,7 @@ const testResultsPage1 = {
     [
       3,
       "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
+      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 1</a>",
       "<a href='/url/announcement_details?ann_id=1003' target=_blank>TITLE 3</a>",
     ],
     [
@@ -439,7 +440,7 @@ describe('AnnouncementsHandler', () => {
     });
   });
 
-  describe('getAnnouncements', () => {
+  describe('getAnnouncementData', () => {
     const handler = new AnnouncementsHandler(testConfig);
     let httpStub;
 
@@ -462,10 +463,78 @@ describe('AnnouncementsHandler', () => {
     });
 
     it('should return data from all pages', async () => {
-      const result = await handler.getAnnouncements();
+      await handler.getAnnouncementData();
 
-      result.should.be
+      handler.data.should.be
         .eql(testResultsPage1.data.concat(testResultsPage2.data, testResultsPage3.data));
+    });
+  });
+
+  describe('getAnnouncements', () => {
+    it('should make announcements an empty array if no data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+      const getDataStub = sinon.stub(handler, 'getAnnouncementData');
+      getDataStub.resolves([]);
+
+      await handler.getAnnouncementData();
+      handler.data = [];
+
+      await handler.getAnnouncements();
+      handler.announcements.should.be.eql([]);
+
+      handler.announcements = testResultsPage1.data;
+      await handler.getAnnouncementData();
+      await handler.getAnnouncements();
+      handler.announcements.should.be.eql([]);
+
+      getDataStub.restore();
+    });
+
+    it('should populate announcements array if data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+      const getDataStub = sinon.stub(handler, 'getAnnouncementData');
+      getDataStub.resolves([]);
+
+      await handler.getAnnouncementData();
+      handler.data = testResultsPage1.data;
+
+      const rowCount = testResultsPage1.data.length;
+      const testIndex = rowCount - 1;
+
+      await handler.getAnnouncements();
+
+      handler.announcements.length.should.be.eql(rowCount);
+
+      const testAnnouncement = new Announcement();
+      testAnnouncement.constructFromWebData(testResultsPage1.data[testIndex]);
+      handler.announcements[testIndex].should.be.eql(testAnnouncement);
+
+      getDataStub.restore();
+    });
+  });
+
+  describe('displayAnnouncements', () => {
+    it('should display an empty string if no data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+      handler.announcements = [];
+
+      const result = handler.displayAnnouncements();
+      result.should.be.eql('');
+    });
+
+    it('should display announcements array if data retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      handler.data = testResultsPage1.data;
+      await handler.getAnnouncements();
+
+      let testDisplay = '';
+      handler.announcements.forEach((row) => {
+        testDisplay += `${row.companyName}\n${row.id}. ${row.announcementTitle}\n${row.announcementUrl}\n\n`;
+      });
+
+      const result = handler.displayAnnouncements();
+      result.should.be.eql(testDisplay);
     });
   });
 });

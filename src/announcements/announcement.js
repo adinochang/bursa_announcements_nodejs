@@ -66,8 +66,23 @@ class Announcement {
     const endMarker = process.env.PARSER_WEB_DATA_URL_MARKER_END;
 
     if (announcement !== null && announcement !== undefined && announcement.length > 0) {
-      this.announcementUrl = StringUtils.getInnerText(announcement, startMarker, endMarker);
+      const url = StringUtils.getInnerText(announcement, startMarker, endMarker);
+
+      if (url.length > 0) {
+        this.announcementUrl = `${process.env.SOURCE_URL}${url}`;
+      }
     }
+  }
+
+  toDisplay() {
+    let display = '';
+
+    if (this.companyName.length > 0 && this.announcementTitle.length > 0
+        && this.announcementUrl.length > 0) {
+      display = `${this.companyName}\n${this.id}. ${this.announcementTitle}\n${this.announcementUrl}\n\n`;
+    }
+
+    return display;
   }
 }
 

@@ -5,7 +5,7 @@ const testId = 88;
 const testDate = '20 Apr 2023';
 const testCompanyName = 'COMPANY 1';
 const testTitle = 'TITLE 1';
-const testUrl = '/url/announcement_details?ann_id=1001';
+const testUrl = 'url/announcement_details?ann_id=1001';
 
 const testSource = [
   testId,
@@ -25,7 +25,7 @@ describe('Announcement', () => {
       announcement.announcementDate.should.be.eql(new Date('2023-04-20 00:00:00'));
       announcement.companyName.should.be.eql(testCompanyName);
       announcement.announcementTitle.should.be.eql(testTitle);
-      announcement.announcementUrl.should.be.eql(testUrl);
+      announcement.announcementUrl.should.be.eql(`${process.env.SOURCE_URL}${testUrl}`);
     });
 
     it('should initialize empty properties if web data is empty', async () => {
@@ -130,7 +130,7 @@ describe('Announcement', () => {
       const announcement = new Announcement();
 
       announcement.setCompanyName(testSource[2]);
-      announcement.companyName.should.be.eql('COMPANY 1');
+      announcement.companyName.should.be.eql(testCompanyName);
     });
   });
 
@@ -204,7 +204,41 @@ describe('Announcement', () => {
       const announcement = new Announcement();
 
       announcement.setAnnouncementUrl(testSource[3]);
-      announcement.announcementUrl.should.be.eql(testUrl);
+      announcement.announcementUrl.should.be.eql(`${process.env.SOURCE_URL}${testUrl}`);
+    });
+  });
+
+  describe('toDisplay', () => {
+    it('should display an empty string if announcement properties are empty', async () => {
+      const announcement = new Announcement();
+
+      announcement.companyName = '';
+      announcement.announcementTitle = testTitle;
+      announcement.announcementUrl = `${process.env.SOURCE_URL}${testUrl}`;
+
+      let result = announcement.toDisplay();
+      result.should.be.eql('');
+
+      announcement.companyName = testCompanyName;
+      announcement.announcementTitle = '';
+
+      result = announcement.toDisplay();
+      result.should.be.eql('');
+
+      announcement.announcementTitle = testTitle;
+      announcement.announcementUrl = '';
+
+      result = announcement.toDisplay();
+      result.should.be.eql('');
+    });
+
+    it('should display expected string', async () => {
+      const announcement = new Announcement();
+
+      announcement.constructFromWebData(testSource);
+
+      const result = announcement.toDisplay();
+      result.should.be.eql(`${testCompanyName}\n${testId}. ${testTitle}\n${process.env.SOURCE_URL}${testUrl}\n\n`);
     });
   });
 });
