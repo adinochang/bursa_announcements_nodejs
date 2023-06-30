@@ -24,21 +24,15 @@ const testResultsPage1 = {
   category_message: '',
   data: [
     [
+      5,
+      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
+      "<a href='/url/company-profile?stock_code=3' target=_blank>COMPANY 3</a>",
+      "<a href='/url/announcement_details?ann_id=1005' target=_blank>TITLE 5</a>",
+    ],
+    [
       1,
-      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
+      "<div class='d-lg-none'>21 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>21 Apr 2023</div>",
       "<a href='/url/company-profile?stock_code=1' target=_blank>COMPANY 1</a>",
-      "<a href='/url/announcement_details?ann_id=1001' target=_blank>TITLE 1</a>",
-    ],
-    [
-      2,
-      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
-      "<a href='/url/announcement_details?ann_id=1002' target=_blank>TITLE 2</a>",
-    ],
-    [
-      3,
-      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 1</a>",
       "<a href='/url/announcement_details?ann_id=1003' target=_blank>TITLE 3</a>",
     ],
     [
@@ -48,10 +42,16 @@ const testResultsPage1 = {
       "<a href='/url/announcement_details?ann_id=1004' target=_blank>TITLE 4</a>",
     ],
     [
-      5,
+      3,
       "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=3' target=_blank>COMPANY 3</a>",
-      "<a href='/url/announcement_details?ann_id=1005' target=_blank>TITLE 5</a>",
+      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 1</a>",
+      "<a href='/url/announcement_details?ann_id=1001' target=_blank>TITLE 1</a>",
+    ],
+    [
+      2,
+      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
+      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
+      "<a href='/url/announcement_details?ann_id=1002' target=_blank>TITLE 2</a>",
     ],
   ],
 };
@@ -479,12 +479,12 @@ describe('AnnouncementsHandler', () => {
       await handler.getAnnouncementData();
       handler.data = [];
 
-      await handler.getAnnouncements();
+      handler.getAnnouncements();
       handler.announcements.should.be.eql([]);
 
       handler.announcements = testResultsPage1.data;
       await handler.getAnnouncementData();
-      await handler.getAnnouncements();
+      handler.getAnnouncements();
       handler.announcements.should.be.eql([]);
 
       getDataStub.restore();
@@ -501,7 +501,7 @@ describe('AnnouncementsHandler', () => {
       const rowCount = testResultsPage1.data.length;
       const testIndex = rowCount - 1;
 
-      await handler.getAnnouncements();
+      handler.getAnnouncements();
 
       handler.announcements.length.should.be.eql(rowCount);
 
@@ -510,6 +510,231 @@ describe('AnnouncementsHandler', () => {
       handler.announcements[testIndex].should.be.eql(testAnnouncement);
 
       getDataStub.restore();
+    });
+  });
+
+  describe('groupAnnouncements', () => {
+    it('should make groupedAnnouncements an empty array if no announcements retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      handler.announcements = [];
+      handler.groupAnnouncements();
+
+      handler.groupedAnnouncements.should.be.eql(new Map());
+
+      handler.groupedAnnouncements.set('COMPANY 1', [1234]);
+      handler.groupAnnouncements();
+
+      handler.groupedAnnouncements.should.be.eql(new Map());
+    });
+
+    it('should populate groupedAnnouncements array if announcements retrieved', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      const testGroupedAnnouncements = new Map();
+
+      testGroupedAnnouncements.set('COMPANY 1', [
+        handler.announcements[1],
+        handler.announcements[3],
+      ]);
+      testGroupedAnnouncements.set('COMPANY 2', [
+        handler.announcements[2],
+        handler.announcements[4],
+      ]);
+      testGroupedAnnouncements.set('COMPANY 3', [
+        handler.announcements[0],
+      ]);
+
+      handler.groupAnnouncements();
+
+      handler.groupedAnnouncements.should.be.eql(testGroupedAnnouncements);
+    });
+  });
+
+  describe('sortGroupedAnnouncements', () => {
+    it('should sort groupedAnnouncements array by company name', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('ZZZ', [
+        handler.announcements[1],
+      ]);
+      handler.groupedAnnouncements.set('AAA', [
+        handler.announcements[3],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('AAA', [
+        handler.announcements[3],
+      ]);
+      testSortedGroupAnnouncements.set('ZZZ', [
+        handler.announcements[1],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
+    });
+
+    it('should sort groupedAnnouncements array by date ascending order', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('COMPANY 1', [
+        handler.announcements[3],
+        handler.announcements[1],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('COMPANY 1', [
+        handler.announcements[3],
+        handler.announcements[1],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
+    });
+
+    it('should sort groupedAnnouncements array by date descending order', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('COMPANY 1', [
+        handler.announcements[1],
+        handler.announcements[3],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('COMPANY 1', [
+        handler.announcements[3],
+        handler.announcements[1],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
+    });
+
+    it('should sort groupedAnnouncements array by id ascending order', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('COMPANY 2', [
+        handler.announcements[4],
+        handler.announcements[2],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('COMPANY 2', [
+        handler.announcements[4],
+        handler.announcements[2],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
+    });
+
+    it('should sort groupedAnnouncements array by id decending order', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('COMPANY 2', [
+        handler.announcements[2],
+        handler.announcements[4],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('COMPANY 2', [
+        handler.announcements[4],
+        handler.announcements[2],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
+    });
+
+    it('should sort groupedAnnouncements array with equal date and id', async () => {
+      const handler = new AnnouncementsHandler(testConfig);
+
+      testResultsPage1.data.forEach((row) => {
+        const testAnnouncement = new Announcement();
+        testAnnouncement.constructFromWebData(row);
+
+        handler.announcements.push(testAnnouncement);
+      });
+
+      handler.groupedAnnouncements = new Map();
+
+      handler.groupedAnnouncements.set('COMPANY 2', [
+        handler.announcements[2],
+        handler.announcements[2],
+      ]);
+
+      handler.sortGroupedAnnouncements();
+
+      const testSortedGroupAnnouncements = new Map();
+
+      testSortedGroupAnnouncements.set('COMPANY 2', [
+        handler.announcements[2],
+        handler.announcements[2],
+      ]);
+
+      handler.groupedAnnouncements.should.be.eql(testSortedGroupAnnouncements);
     });
   });
 
@@ -526,12 +751,15 @@ describe('AnnouncementsHandler', () => {
       const handler = new AnnouncementsHandler(testConfig);
 
       handler.data = testResultsPage1.data;
-      await handler.getAnnouncements();
+      handler.getAnnouncements();
+      handler.groupAnnouncements();
+      handler.sortGroupedAnnouncements();
 
-      let testDisplay = '';
-      handler.announcements.forEach((row) => {
-        testDisplay += `${row.companyName}\n${row.id}. ${row.announcementTitle}\n${row.announcementUrl}\n\n`;
-      });
+      const testDisplay = 'COMPANY 1\n1. TITLE 1\nhttps://www.bursamalaysia.com//url/announcement_details?ann_id=1001\n'
+        + '2. TITLE 3\nhttps://www.bursamalaysia.com//url/announcement_details?ann_id=1003\n'
+        + '\nCOMPANY 2\n1. TITLE 2\nhttps://www.bursamalaysia.com//url/announcement_details?ann_id=1002\n'
+        + '2. TITLE 4\nhttps://www.bursamalaysia.com//url/announcement_details?ann_id=1004\n'
+        + '\nCOMPANY 3\n1. TITLE 5\nhttps://www.bursamalaysia.com//url/announcement_details?ann_id=1005\n\n';
 
       const result = handler.displayAnnouncements();
       result.should.be.eql(testDisplay);

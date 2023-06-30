@@ -19,24 +19,33 @@ async function main() {
     }),
   });
 
-  // await announcements.getAnnouncementData();
+  await announcements.getAnnouncementData();
 
-  announcements.data = [
-    [
-      1,
-      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=1' target=_blank>COMPANY 1</a>",
-      "<a href='/url/announcement_details?ann_id=1001' target=_blank>TITLE 1</a>",
-    ],
-    [
-      2,
-      "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
-      "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
-      "<a href='/url/announcement_details?ann_id=1002' target=_blank>TITLE 2</a>",
-    ],
-  ];
+  // announcements.data = [
+  //   [
+  //     1,
+  //     "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
+  //     "<a href='/url/company-profile?stock_code=2' target=_blank>COMPANY 2</a>",
+  //     "<a href='/url/announcement_details?ann_id=1002' target=_blank>TITLE 2</a>",
+  //   ],
+  //   [
+  //     2,
+  //     "<div class='d-lg-none'>21 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>21 Apr 2023</div>",
+  //     "<a href='/url/company-profile?stock_code=1' target=_blank>COMPANY 1</a>",
+  //     "<a href='/url/announcement_details?ann_id=1003' target=_blank>TITLE 3</a>",
+  //   ],
+  //   [
+  //     2,
+  //     "<div class='d-lg-none'>20 Apr<br/>2023</div><div class='d-lg-inline-block d-none'>20 Apr 2023</div>",
+  //     "<a href='/url/company-profile?stock_code=1' target=_blank>COMPANY 1</a>",
+  //     "<a href='/url/announcement_details?ann_id=1001' target=_blank>TITLE 1</a>",
+  //   ],
+  // ];
 
   announcements.getAnnouncements();
+  announcements.groupAnnouncements();
+  announcements.sortGroupedAnnouncements();
+
   console.log(announcements.displayAnnouncements());
 
   // TODO: add filtering function - should have rules to filter out and rules to highlight

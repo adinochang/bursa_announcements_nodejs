@@ -19,6 +19,8 @@ class AnnouncementsHandler {
 
   announcements = [];
 
+  groupedAnnouncements = new Map();
+
   constructor(config) {
     if (config !== undefined) {
       if (Object.hasOwn(config, 'apiSource') && typeof config.apiSource === 'string'
@@ -99,26 +101,65 @@ class AnnouncementsHandler {
   getAnnouncements() {
     this.announcements = [];
 
-    if (this.data.length > 0) {
-      let row = 0;
-      while (row < this.data.length) {
-        const announcement = new Announcement();
+    this.data.forEach((row) => {
+      const announcement = new Announcement();
 
-        announcement.constructFromWebData(this.data[row]);
-        this.announcements.push(announcement);
-
-        row += 1;
-      }
-    }
+      announcement.constructFromWebData(row);
+      this.announcements.push(announcement);
+    });
   }
 
-  // TODO: Group announcements from the same company
+  groupAnnouncements() {
+    this.groupedAnnouncements.clear();
+
+    this.announcements.forEach((row) => {
+      const existingCompany = this.groupedAnnouncements.get(row.companyName);
+
+      if (existingCompany === undefined) {
+        this.groupedAnnouncements.set(row.companyName, [row]);
+      } else {
+        existingCompany.push(row);
+      }
+    });
+  }
+
+  sortGroupedAnnouncements() {
+    this.groupedAnnouncements.forEach((company) => {
+      company.sort((firstRow, secondRow) => {
+        let comparison = 0;
+
+        if (firstRow.announcementDate.getTime() > secondRow.announcementDate.getTime()) {
+          comparison = 1;
+        } else if (firstRow.announcementDate.getTime() < secondRow.announcementDate.getTime()) {
+          comparison = -1;
+        } else if (firstRow.id > secondRow.id) {
+          comparison = 1;
+        } else if (firstRow.id < secondRow.id) {
+          comparison = -1;
+        }
+
+        return comparison;
+      });
+    });
+
+    this.groupedAnnouncements = new Map([...this.groupedAnnouncements.entries()].sort());
+  }
 
   displayAnnouncements() {
     let display = '';
 
-    this.announcements.forEach((row) => {
-      display += `${row.companyName}\n${row.id}. ${row.announcementTitle}\n${row.announcementUrl}\n\n`;
+    this.groupedAnnouncements.forEach((company, key) => {
+      display += `${key}\n`;
+
+      let rowNumber = 1;
+
+      company.forEach((row) => {
+        display += `${rowNumber}. ${row.announcementTitle}\n${row.announcementUrl}\n`;
+
+        rowNumber += 1;
+      });
+
+      display += '\n';
     });
 
     return display;
